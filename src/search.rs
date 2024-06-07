@@ -3,8 +3,8 @@ use std::collections::HashMap;
 use reqwest::blocking::{Client, RequestBuilder};
 use serde::{Deserialize, Serialize};
 
-const API_KEY: &'static str = "20232b096f015a6417529824ddf70b14";
-const API_URL: &'static str = "https://api.legiscan.com";
+const API_KEY: &str = "20232b096f015a6417529824ddf70b14";
+const API_URL: &str = "https://api.legiscan.com";
 
 fn build_prefix(client: &Client) -> RequestBuilder {
     client.get(API_URL).query(&[("key", API_KEY)])
@@ -76,7 +76,7 @@ pub fn get_search_page(
             ("op", "getSearch"),
             ("state", state.unwrap_or("ALL")),
             ("year", &year.to_string()),
-            ("query", &query),
+            ("query", query),
             ("page", &page.to_string()),
         ])
         .send()?
@@ -93,8 +93,6 @@ pub fn get_search_page(
         }
     }
 
-    //bills.sort_by_key(|bill| bill.relevance);
-
     Ok(bills)
 }
 
@@ -102,7 +100,7 @@ pub fn get_search(
     client: &Client,
     state: Option<&str>,
     year: Year,
-    query: impl Into<String> + Clone,
+    query: &str,
 ) -> reqwest::Result<Vec<Bill>> {
     let res = {
         let year: u32 = year.into();
@@ -112,7 +110,7 @@ pub fn get_search(
                 ("op", "getSearch"),
                 ("state", state.unwrap_or("ALL")),
                 ("year", &year.to_string()),
-                ("query", &query.clone().into()),
+                ("query", query),
             ])
             .send()?
             .json::<SearchResult>()?
@@ -122,11 +120,11 @@ pub fn get_search(
         if k == "summary" {
             let summary: Summary = serde_json::from_value(item).unwrap();
             println!("{:#?}", summary);
-            return get_search_until(client, state, year, &query.into(), summary.page_total);
+            return get_search_until(client, state, year, query, summary.page_total);
         }
     }
 
-    panic!("whoops")
+    unreachable!()
 }
 
 pub fn get_search_until(
