@@ -146,22 +146,33 @@ pub fn get_search(
     let res = {
         let year: u32 = year.into();
 
+        let params = &[
+            ("op", "getSearch"),
+            ("state", state.unwrap_or("ALL")),
+            ("year", &year.to_string()),
+            ("query", query),
+        ];
+
+        println!("search_params = {:?}", params);
+
         build_prefix(client)
-            .query(&[
-                ("op", "getSearch"),
-                ("state", state.unwrap_or("ALL")),
-                ("year", &year.to_string()),
-                ("query", query),
-            ])
+            .query(params)
             .send()?
             .json::<SearchResult>()?
     };
 
     for (k, item) in res.searchresult {
         if k == "summary" {
-            let summary: Summary = serde_json::from_value(item).unwrap();
-            println!("{:#?}", summary);
-            return get_search_until(client, state, year, query, summary.page_total);
+            match serde_json::from_value::<Summary>(item) {
+                Err(_) => {
+                    println!("No results");
+                    std::process::exit(0);
+                }
+                Ok(summary) => {
+                    println!("{:#?}", summary);
+                    return get_search_until(client, state, year, query, summary.page_total);
+                }
+            }
         }
     }
 
