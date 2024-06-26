@@ -14,7 +14,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let query = args.query;
     println!("Search: {}", query);
-    let bills = get_search(&client, args.state.as_deref(), args.year, &query)?;
+    let mut bills = get_search(&client, args.state.as_deref(), args.year, &query)?;
+
+    if let Some(last_action_date) = args.last_action_date {
+        bills.retain(|bill| bill.last_action_date > last_action_date);
+    }
 
     // Save result to CSV.
     let path = Path::new(&query).with_extension("csv");
@@ -37,4 +41,7 @@ struct Args {
 
     #[arg(short, long)]
     state: Option<String>,
+
+    #[arg(long)]
+    last_action_date: Option<String>,
 }
