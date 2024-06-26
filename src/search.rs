@@ -10,6 +10,21 @@ fn build_prefix(client: &Client) -> RequestBuilder {
     client.get(API_URL).query(&[("key", API_KEY)])
 }
 
+// Annoying workaround because #[serde(flatten)] doesn't work with csv crate.
+#[derive(Serialize)]
+pub struct BillCsvRow<'a>(Bill, Query<'a>);
+
+#[derive(Serialize)]
+struct Query<'a> {
+    query: &'a str,
+}
+
+impl<'a> BillCsvRow<'a> {
+    pub fn new(bill: Bill, query: &'a str) -> Self {
+        Self(bill, Query {query})
+    }
+}
+
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Bill {
     pub relevance: u32,

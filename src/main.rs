@@ -29,7 +29,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let path = Path::new(&query).with_extension("csv");
     let mut wtr = csv::Writer::from_path(&path)?;
     for bill in bills {
-        wtr.serialize(bill)?;
+        wtr.serialize(BillCsvRow::new(bill, &query))?;
     }
     println!("Saved to {}", path.display());
 
