@@ -165,8 +165,8 @@ pub fn get_search(
         if k == "summary" {
             match serde_json::from_value::<Summary>(item) {
                 Err(_) => {
-                    println!("No results");
-                    std::process::exit(0);
+                    // No results.
+                    return Ok(Vec::new());
                 }
                 Ok(summary) => {
                     println!("{:#?}", summary);

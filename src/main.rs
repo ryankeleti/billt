@@ -17,7 +17,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut bills = get_search(&client, args.state.as_deref(), args.year, &query)?;
 
     if let Some(last_action_date) = args.last_action_date {
-        bills.retain(|bill| bill.last_action_date > last_action_date);
+        println!("Filtering out results before {last_action_date}...");
+        bills.retain(|bill| bill.last_action_date >= last_action_date);
+    }
+
+    if bills.is_empty() {
+        println!("No results.");
     }
 
     // Save result to CSV.
