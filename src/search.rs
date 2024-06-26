@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, fmt, str::FromStr};
 
 use reqwest::blocking::{Client, RequestBuilder};
 use serde::{Deserialize, Serialize};
@@ -40,13 +40,25 @@ struct SearchResult {
     searchresult: HashMap<String, serde_json::Value>,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug, Deserialize)]
 pub enum Year {
     All,
     Current,
     Recent,
     Prior,
     Exact(u32),
+}
+
+impl fmt::Display for Year {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Year::All => "all".fmt(f),
+            Year::Current => "current".fmt(f),
+            Year::Recent => "recent".fmt(f),
+            Year::Prior => "prior".fmt(f),
+            Year::Exact(year) => year.fmt(f),
+        }
+    }
 }
 
 impl From<Year> for u32 {
@@ -57,6 +69,35 @@ impl From<Year> for u32 {
             Year::Recent => 3,
             Year::Prior => 4,
             Year::Exact(n) => n,
+        }
+    }
+}
+
+#[derive(PartialEq, Eq, Debug)]
+pub struct ParseYearError(&'static str);
+
+impl fmt::Display for ParseYearError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self.0.fmt(f)
+    }
+}
+
+impl std::error::Error for ParseYearError {}
+
+impl FromStr for Year {
+    type Err = ParseYearError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "all" => Ok(Year::All),
+            "current" => Ok(Year::Current),
+            "recent" => Ok(Year::Recent),
+            "prior" => Ok(Year::Prior),
+            _ => match s.parse::<u32>() {
+                Ok(year) if year > 1900 => Ok(Year::Exact(year)),
+                Ok(_) => Err(ParseYearError("exact year should be > 1900")),
+                Err(_) => Err(ParseYearError("could not parse exact year")),
+            },
         }
     }
 }
