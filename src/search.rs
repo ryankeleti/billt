@@ -21,7 +21,7 @@ struct Query<'a> {
 
 impl<'a> BillCsvRow<'a> {
     pub fn new(bill: Bill, query: &'a str) -> Self {
-        Self(bill, Query {query})
+        Self(bill, Query { query })
     }
 }
 
@@ -35,6 +35,7 @@ pub struct Bill {
     pub url: String,
     pub text_url: String,
     pub research_url: String,
+    pub last_action: String,
     pub last_action_date: String,
     pub title: String,
 }
