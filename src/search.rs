@@ -2,6 +2,7 @@ use std::{collections::HashMap, fmt, str::FromStr};
 
 use reqwest::blocking::{Client, RequestBuilder};
 use serde::{Deserialize, Serialize};
+use serde_repr::Deserialize_repr;
 
 const API_KEY: &str = "20232b096f015a6417529824ddf70b14";
 const API_URL: &str = "https://api.legiscan.com";
@@ -15,6 +16,9 @@ fn build_prefix(client: &Client) -> RequestBuilder {
 pub struct BillCsvRow<'a>(Bill, Query<'a>);
 
 #[derive(Serialize)]
+pub struct BillCsvRowWithExtraStuff<'a>(Bill, ExtraBillStuff, Query<'a>);
+
+#[derive(Serialize)]
 struct Query<'a> {
     query: &'a str,
 }
@@ -25,26 +29,48 @@ impl<'a> BillCsvRow<'a> {
     }
 }
 
+impl<'a> BillCsvRowWithExtraStuff<'a> {
+    pub fn new(bill: Bill, extra: ExtraBillStuff, query: &'a str) -> Self {
+        Self(bill, extra, Query { query })
+    }
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct BillResult {
+    pub status: String,
+    pub bill: ExtraBillStuff,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct ExtraBillStuff {
+    pub status: Status,
+    pub status_date: Option<String>,
+    pub description: Option<String>,
+}
+
+// Option stuff is kinda bad, but I want to ignore when some fields
+// are randomly null from API.
+
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Bill {
     pub relevance: u32,
-    pub state: String,
-    pub bill_number: String,
+    pub state: Option<String>,
+    pub bill_number: Option<String>,
     pub bill_id: u32,
-    pub change_hash: String,
-    pub url: String,
-    pub text_url: String,
-    pub research_url: String,
-    pub last_action: String,
-    pub last_action_date: String,
-    pub title: String,
+    pub change_hash: Option<String>,
+    pub url: Option<String>,
+    pub text_url: Option<String>,
+    pub research_url: Option<String>,
+    pub last_action: Option<String>,
+    pub last_action_date: Option<String>,
+    pub title: Option<String>,
 }
 
 #[derive(Clone, Debug, Deserialize)]
 struct Summary {
-    page: String,
-    range: String,
-    relevancy: String,
+    page: Option<String>,
+    range: Option<String>,
+    relevancy: Option<String>,
     count: u32,
     page_current: u32,
     page_total: u32,
@@ -54,6 +80,18 @@ struct Summary {
 struct SearchResult {
     status: String,
     searchresult: HashMap<String, serde_json::Value>,
+}
+
+#[derive(Clone, Copy, Debug, Serialize, Deserialize_repr)]
+#[repr(u8)]
+pub enum Status {
+    NA = 0,
+    Introduced = 1,
+    Engrossed = 2,
+    Enrolled = 3,
+    Passed = 4,
+    Vetoed = 5,
+    Failed = 6,
 }
 
 #[derive(Clone, Copy, Debug, Deserialize)]
@@ -213,4 +251,13 @@ pub fn get_search_until(
     bills.reverse();
 
     Ok(bills)
+}
+
+pub fn get_bill(client: &Client, bill_id: u32) -> reqwest::Result<ExtraBillStuff> {
+    let params = &[("op", "getBill"), ("id", &bill_id.to_string())];
+    build_prefix(client)
+        .query(params)
+        .send()?
+        .json::<BillResult>()
+        .map(|r| r.bill)
 }
