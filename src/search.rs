@@ -4,6 +4,7 @@ use reqwest::blocking::{Client, RequestBuilder};
 use serde::{Deserialize, Serialize};
 use serde_repr::Deserialize_repr;
 
+// FIXME don't store these in the source, obviously :p
 const API_KEY: &str = "20232b096f015a6417529824ddf70b14";
 const API_URL: &str = "https://api.legiscan.com";
 
@@ -46,6 +47,7 @@ pub struct ExtraBillStuff {
     pub status: Status,
     pub status_date: Option<String>,
     pub description: Option<String>,
+    pub state_link: Option<String>,
 }
 
 // Option stuff is kinda bad, but I want to ignore when some fields
