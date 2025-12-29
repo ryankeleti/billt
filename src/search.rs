@@ -44,10 +44,10 @@ pub struct BillResult {
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct ExtraBillStuff {
+    pub state_link: Option<String>,
     pub status: Status,
     pub status_date: Option<String>,
     pub description: Option<String>,
-    pub state_link: Option<String>,
 }
 
 // Option stuff is kinda bad, but I want to ignore when some fields
@@ -61,11 +61,11 @@ pub struct Bill {
     pub bill_id: u32,
     pub change_hash: Option<String>,
     pub url: Option<String>,
-    pub text_url: Option<String>,
-    pub research_url: Option<String>,
     pub last_action: Option<String>,
     pub last_action_date: Option<String>,
     pub title: Option<String>,
+    pub text_url: Option<String>,
+    pub research_url: Option<String>,
 }
 
 #[derive(Clone, Debug, Deserialize)]
