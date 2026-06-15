@@ -1,7 +1,7 @@
 #![allow(unused)]
 mod search;
 
-use std::{env, path::Path};
+use std::path::Path;
 
 use clap::{builder::NonEmptyStringValueParser, Parser};
 use reqwest::blocking::Client;
@@ -36,10 +36,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Save result to CSV.
     let path = Path::new(&query).with_extension("csv");
     let mut wtr = csv::Writer::from_path(&path)?;
-    for bill in bills {
+    for bill in bills.into_iter() {
         if args.bill_status {
             match get_bill(&client, bill.bill_id) {
                 Ok(extra) => {
+                    // println!("{:#?}", extra);
                     wtr.serialize(BillCsvRowWithExtraStuff::new(bill, extra, &query))?;
                 }
                 Err(e) => {

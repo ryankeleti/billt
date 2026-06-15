@@ -1,7 +1,7 @@
 use std::{collections::HashMap, fmt, str::FromStr};
 
 use reqwest::blocking::{Client, RequestBuilder};
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize, Serializer};
 use serde_repr::Deserialize_repr;
 
 // FIXME don't store these in the source, obviously :p
@@ -17,7 +17,7 @@ fn build_prefix(client: &Client) -> RequestBuilder {
 pub struct BillCsvRow<'a>(Bill, Query<'a>);
 
 #[derive(Serialize)]
-pub struct BillCsvRowWithExtraStuff<'a>(Bill, ExtraBillStuff, Query<'a>);
+pub struct BillCsvRowWithExtraStuff<'a>(Bill, ExtraBillStuff, FilteredSast, Query<'a>);
 
 #[derive(Serialize)]
 struct Query<'a> {
@@ -32,7 +32,8 @@ impl<'a> BillCsvRow<'a> {
 
 impl<'a> BillCsvRowWithExtraStuff<'a> {
     pub fn new(bill: Bill, extra: ExtraBillStuff, query: &'a str) -> Self {
-        Self(bill, extra, Query { query })
+        let sast = filter_sasts(&extra.sasts);
+        Self(bill, extra, sast, Query { query })
     }
 }
 
@@ -48,6 +49,43 @@ pub struct ExtraBillStuff {
     pub status: Status,
     pub status_date: Option<String>,
     pub description: Option<String>,
+    #[serde(skip_serializing)]
+    pub sasts: Vec<Sast>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct FilteredSast {
+    pub same_as: Option<String>,
+    pub replaced_by: Option<String>,
+    pub cross_filed: Option<String>,
+    pub carry_over: Option<String>,
+}
+
+pub fn filter_sasts(sasts: &[Sast]) -> FilteredSast {
+    let same_as = sasts.iter().find(|sast| sast.sast_type_id == 1).cloned();
+    let replaced_by = sasts.iter().find(|sast| sast.sast_type_id == 3).cloned();
+    let cross_filed = sasts.iter().find(|sast| sast.sast_type_id == 5).cloned();
+    let carry_over = sasts.iter().find(|sast| sast.sast_type_id == 9).cloned();
+    FilteredSast {
+        same_as: same_as.map(|s| s.sast_bill_number),
+        replaced_by: replaced_by.map(|s| s.sast_bill_number),
+        cross_filed: cross_filed.map(|s| s.sast_bill_number),
+        carry_over: carry_over.map(|s| s.sast_bill_number),
+    }
+}
+
+// fn serialize_sasts<S: Serializer>(sasts: &[Sast], serializer: S) -> Result<S::Ok, S::Error> {
+//     serializer.serialize_str("")
+// }
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct Sast {
+    #[serde(rename = "type_id")]
+    pub sast_type_id: u32,
+    #[serde(rename = "type")]
+    pub sast_type: String,
+    pub sast_bill_number: String,
+    pub sast_bill_id: u32,
 }
 
 // Option stuff is kinda bad, but I want to ignore when some fields
