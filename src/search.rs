@@ -62,6 +62,7 @@ pub struct ExtraBillStuff {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct FilteredSast {
     pub same_as: Option<String>,
+    pub similar_to: Option<String>,
     pub replaced_by: Option<String>,
     pub cross_filed: Option<String>,
     pub carry_over: Option<String>,
@@ -78,18 +79,20 @@ fn find_unique_sast(
         .filter(|sast| sast.sast_type_id == sast_type_id);
     let first = sasts.next()?;
     if sasts.next().is_some() {
-        eprintln!("warning: found more than one '{sast_type}' in SAST array for bill '{bill}'");
+        eprintln!("warning: found more than one '{sast_type}' in SAST array for bill '{bill}'; picking first");
     }
     Some(first.sast_bill_number.clone())
 }
 
 pub fn filter_sasts(sasts: &[Sast], bill: &str) -> FilteredSast {
     let same_as = find_unique_sast(sasts, 1, "Same As", bill);
+    let similar_to = find_unique_sast(sasts, 2, "Similar To", bill);
     let replaced_by = find_unique_sast(sasts, 3, "Replaced By", bill);
     let cross_filed = find_unique_sast(sasts, 5, "Cross-filed", bill);
     let carry_over = find_unique_sast(sasts, 9, "Carry over", bill);
     FilteredSast {
         same_as,
+        similar_to,
         replaced_by,
         cross_filed,
         carry_over,

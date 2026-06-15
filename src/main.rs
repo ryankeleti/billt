@@ -40,7 +40,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         query.clone(),
         args.state.unwrap_or("US".to_string()),
         args.year.to_string(),
-        local.to_string(),
+        "generated".to_string(),
+        local.format("%Y-%m-%d_%H-%M-%S").to_string(),
     ];
     let path = parts.join("_");
 
