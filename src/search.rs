@@ -32,7 +32,13 @@ impl<'a> BillCsvRow<'a> {
 
 impl<'a> BillCsvRowWithExtraStuff<'a> {
     pub fn new(bill: Bill, extra: ExtraBillStuff, query: &'a str) -> Self {
-        let sast = filter_sasts(&extra.sasts);
+        let sast = filter_sasts(
+            &extra.sasts,
+            &bill
+                .bill_number
+                .clone()
+                .unwrap_or("unknown bill".to_string()),
+        );
         Self(bill, extra, sast, Query { query })
     }
 }
@@ -61,16 +67,32 @@ pub struct FilteredSast {
     pub carry_over: Option<String>,
 }
 
-pub fn filter_sasts(sasts: &[Sast]) -> FilteredSast {
-    let same_as = sasts.iter().find(|sast| sast.sast_type_id == 1).cloned();
-    let replaced_by = sasts.iter().find(|sast| sast.sast_type_id == 3).cloned();
-    let cross_filed = sasts.iter().find(|sast| sast.sast_type_id == 5).cloned();
-    let carry_over = sasts.iter().find(|sast| sast.sast_type_id == 9).cloned();
+fn find_unique_sast(
+    sasts: &[Sast],
+    sast_type_id: u32,
+    sast_type: &str,
+    bill: &str,
+) -> Option<String> {
+    let mut sasts = sasts
+        .iter()
+        .filter(|sast| sast.sast_type_id == sast_type_id);
+    let first = sasts.next()?;
+    if sasts.next().is_some() {
+        eprintln!("warning: found more than one '{sast_type}' in SAST array for bill '{bill}'");
+    }
+    Some(first.sast_bill_number.clone())
+}
+
+pub fn filter_sasts(sasts: &[Sast], bill: &str) -> FilteredSast {
+    let same_as = find_unique_sast(sasts, 1, "Same As", bill);
+    let replaced_by = find_unique_sast(sasts, 3, "Replaced By", bill);
+    let cross_filed = find_unique_sast(sasts, 5, "Cross-filed", bill);
+    let carry_over = find_unique_sast(sasts, 9, "Carry over", bill);
     FilteredSast {
-        same_as: same_as.map(|s| s.sast_bill_number),
-        replaced_by: replaced_by.map(|s| s.sast_bill_number),
-        cross_filed: cross_filed.map(|s| s.sast_bill_number),
-        carry_over: carry_over.map(|s| s.sast_bill_number),
+        same_as,
+        replaced_by,
+        cross_filed,
+        carry_over,
     }
 }
 
