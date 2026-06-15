@@ -3,6 +3,7 @@ mod search;
 
 use std::path::Path;
 
+use chrono::prelude::*;
 use clap::{builder::NonEmptyStringValueParser, Parser};
 use reqwest::blocking::Client;
 
@@ -34,7 +35,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     // Save result to CSV.
-    let path = Path::new(&query).with_extension("csv");
+    let local: DateTime<Local> = Local::now();
+    let parts = vec![
+        query.clone(),
+        args.state.unwrap_or("US".to_string()),
+        args.year.to_string(),
+        local.to_string(),
+    ];
+    let path = parts.join("_");
+
+    let path = Path::new(&path).with_extension("csv");
     let mut wtr = csv::Writer::from_path(&path)?;
     for bill in bills.into_iter() {
         if args.bill_status {
